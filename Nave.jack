@@ -1,0 +1,138 @@
+// Nave.jack
+// Se mueve izquierda/derecha con flechas
+// Tiene gravedad constante hacia abajo
+
+class Nave {
+    field int xPos;   // posicion horizontal en pixeles
+    field int yPos;   // posicion vertical en pixeles
+    field int yVel;   // velocidad vertical (gravedad)
+    field int xVel;   // velocidad horizontal
+
+    // Ancho y alto de la nave en pixeles
+    // La nave ocupa aprox 11 columnas x 15 filas
+
+    constructor Nave new(int x, int y) {
+        do reset(x, y);
+        return this;
+    }
+
+    method void dispose() {
+        do Memory.deAlloc(this);
+        return;
+    }
+
+    // Mover izquierda
+    method void moveLeft() {
+        if (xPos > 5) {
+            // borrar posicion anterior
+            do borrar();
+            let xPos = xPos - 4;
+        }
+        return;
+    }
+
+    // Mover derecha
+    method void moveRight() {
+        if (xPos < 496) {
+            // borrar posicion anterior
+            do borrar();
+            let xPos = xPos + 4;
+        }
+        return;
+    }
+
+    // Impulso hacia arriba
+    method void boost() {
+        let yVel = -4;
+        return;
+    }
+
+    // Aplicar gravedad y actualizar posicion
+    method void update() {
+        var int nextY;
+        // borrar posicion anterior
+        do borrar();
+
+        // aplicar gravedad (peso constante)
+        if (yVel < 6) {
+            let yVel = yVel + 1;
+        }
+
+        let nextY = yPos + yVel;
+
+        // mover con limites verticales
+        if (nextY < 0) {
+            let yPos = 0;
+            let yVel = 0;
+        } else {
+            if (nextY > 240) {
+                let yPos = 240;
+            } else {
+                let yPos = nextY;
+            }
+        }
+
+        // dibujar nueva posicion
+        do dibujar();
+        return;
+    }
+
+    method void dibujar() {
+        var int memAddress;
+        // calcular direccion de memoria: 16384 + fila*32 + columna/16
+        let memAddress = 16384 + (yPos * 32) + (xPos / 16);
+
+        do Memory.poke(memAddress, 128);
+        do Memory.poke(memAddress + 32, 320);
+        do Memory.poke(memAddress + 64, 544);
+        do Memory.poke(memAddress + 96, 1488);
+        do Memory.poke(memAddress + 128, 2376);
+        do Memory.poke(memAddress + 160, 4548);
+        do Memory.poke(memAddress + 192, 8194);
+        do Memory.poke(memAddress + 224, 16385);
+        do Memory.poke(memAddress + 256, 16385);
+        do Memory.poke(memAddress + 288, 8194);
+        do Memory.poke(memAddress + 320, 8188);
+        do Memory.poke(memAddress + 352, 2600);
+        do Memory.poke(memAddress + 384, 2600);
+        do Memory.poke(memAddress + 416, 2600);
+        do Memory.poke(memAddress + 448, 1040);
+        return;
+    }
+
+    // Borrar la nave (escribir 0s en su posicion)
+    method void borrar() {
+        var int memAddress;
+        let memAddress = 16384 + (yPos * 32) + (xPos / 16);
+
+        do Memory.poke(memAddress, 0);
+        do Memory.poke(memAddress + 32, 0);
+        do Memory.poke(memAddress + 64, 0);
+        do Memory.poke(memAddress + 96, 0);
+        do Memory.poke(memAddress + 128, 0);
+        do Memory.poke(memAddress + 160, 0);
+        do Memory.poke(memAddress + 192, 0);
+        do Memory.poke(memAddress + 224, 0);
+        do Memory.poke(memAddress + 256, 0);
+        do Memory.poke(memAddress + 288, 0);
+        do Memory.poke(memAddress + 320, 0);
+        do Memory.poke(memAddress + 352, 0);
+        do Memory.poke(memAddress + 384, 0);
+        do Memory.poke(memAddress + 416, 0);
+        do Memory.poke(memAddress + 448, 0);
+        return;
+    }
+
+    // Getters
+    method int x() { return xPos; }
+    method int y() { return yPos; }
+
+    // Resetear posicion
+    method void reset(int x, int y) {
+        let xPos = x;
+        let yPos = y;
+        let yVel = 0;
+        let xVel = 0;
+        return;
+    }
+}

@@ -1,0 +1,166 @@
+class Game {
+    field Nave nave;
+    field Board board;
+    field Tuberia tuberia1;
+    field Tuberia tuberia2;
+    field Tuberia tuberia3;
+    field char key;
+    field boolean exit;
+    field boolean reset;
+    field int delay;
+    field int gracia;
+    field boolean started;
+    field int framesJugando;
+    field int nextNivelScore;
+
+    method void prepararTuberias() {
+        // Escalonar obstaculos para una curva inicial justa.
+        do tuberia1.randomResetConOffset(0, 30);
+        do tuberia2.randomResetConOffset(90, 40);
+        do tuberia3.randomResetConOffset(180, 50);
+        do tuberia1.dibujar();
+        do tuberia2.dibujar();
+        do tuberia3.dibujar();
+        return;
+    }
+
+    constructor Game new() {
+        do Tuberia.init(2);
+
+        let board = Board.new();
+        let nave = Nave.new(20, 40);
+
+        let tuberia1 = Tuberia.new(80,  40,  80);
+        let tuberia2 = Tuberia.new(240, 60,  160);
+        let tuberia3 = Tuberia.new(400, 30,  240);
+
+        let delay = 15;
+        let gracia = 180;
+        let started = false;
+        let framesJugando = 0;
+        let nextNivelScore = 50;
+        return this;
+    }
+
+    method void dispose() {
+        do board.dispose();
+        do nave.dispose();
+        do tuberia1.dispose();
+        do tuberia2.dispose();
+        do tuberia3.dispose();
+        do Memory.deAlloc(this);
+        return;
+    }
+
+    method void handleInput() {
+        let key = Keyboard.keyPressed();
+        if (key = 131) {
+            let started = true;
+            do nave.boost();
+        }
+        if (key = 130) {
+            let started = true;
+            do nave.moveLeft();
+            do nave.boost();
+        }
+        if (key = 132) {
+            let started = true;
+            do nave.moveRight();
+            do nave.boost();
+        }
+        // Evita una salida accidental por lectura espuria de teclado al iniciar.
+        if ((key = 81) & (framesJugando > 30)) { let exit = true; }
+        return;
+    }
+
+    method void verificarColisiones() {
+        // Blindaje extra para evitar derrota inmediata por frames de arranque.
+        if (framesJugando < 60) { return; }
+        if (gracia > 0) { return; }
+        if (tuberia1.colision(nave.x(), nave.y())) { let exit = true; }
+        if (tuberia2.colision(nave.x(), nave.y())) { let exit = true; }
+        if (tuberia3.colision(nave.x(), nave.y())) { let exit = true; }
+        if (nave.y() > 240) { let exit = true; }
+        return;
+    }
+
+    method void ajustarDificultad() {
+        if (board.score() >= nextNivelScore) {
+            if (Tuberia.vel() < 6) {
+                do Tuberia.setVel(Tuberia.vel() + 1);
+            }
+            let nextNivelScore = nextNivelScore + 50;
+            if (delay > 6) {
+                let delay = delay - 1;
+            }
+        }
+        return;
+    }
+
+    method void update() {
+        var boolean paso;
+        do nave.update();
+        if (gracia > 0) {
+            let gracia = gracia - 1;
+        } else {
+            let paso = tuberia1.updateAndCheckPassed();
+            if (paso) { do board.addScore(1); }
+
+            let paso = tuberia2.updateAndCheckPassed();
+            if (paso) { do board.addScore(1); }
+
+            let paso = tuberia3.updateAndCheckPassed();
+            if (paso) { do board.addScore(1); }
+
+            do ajustarDificultad();
+        }
+        return;
+    }
+
+    method boolean run() {
+        let exit = false;
+        let reset = false;
+        let gracia = 180;
+        let started = false;
+        let framesJugando = 0;
+        let delay = 15;
+        let nextNivelScore = 50;
+        do Tuberia.setVel(2);
+        do board.resetScore();
+
+        do board.pantallaInicio();
+        do board.drawBackground();
+        do prepararTuberias();
+        do nave.dibujar();
+
+        while (~exit) {
+            do handleInput();
+            if (started) {
+                let framesJugando = framesJugando + 1;
+                do update();
+                do verificarColisiones();
+                do board.drawHud();
+                do Sys.wait(delay);
+            } else {
+                do board.drawHud();
+                do Sys.wait(delay);
+            }
+        }
+
+        do board.pantallaGameOver();
+
+        while (~reset) {
+            let key = Keyboard.keyPressed();
+            if (key = 81) { return false; }
+            if (key = 82) { let reset = true; }
+        }
+
+        do board.drawBackground();
+        do nave.reset(20, 40);
+        do prepararTuberias();
+        let started = false;
+        let framesJugando = 0;
+
+        return true;
+    }
+}

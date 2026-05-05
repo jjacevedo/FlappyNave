@@ -1,0 +1,169 @@
+class Tuberia {
+    static int yVel;
+    static int seed;
+    field int xPos;
+    field int yPos;
+    field int ancho;
+    field boolean activa;
+
+    function void init(int vel) {
+        let yVel = vel;
+        let seed = 123;
+        return;
+    }
+
+    function void setVel(int vel) {
+        if (vel < 1) {
+            let yVel = 1;
+        } else {
+            let yVel = vel;
+        }
+        return;
+    }
+
+    function int vel() {
+        return yVel;
+    }
+
+    function int nextRandom(int limit) {
+        var int value;
+        let seed = (seed * 73) + 41;
+        if (seed < 0) {
+            let seed = 0 - seed;
+        }
+        if (limit < 1) {
+            return 0;
+        }
+        let value = seed - ((seed / limit) * limit);
+        return value;
+    }
+
+    method void randomReset() {
+        var int maxX, yOffset;
+        let ancho = 24 + Tuberia.nextRandom(73);   // 24..96
+        let maxX = 512 - ancho;
+        if (maxX < 1) {
+            let xPos = 0;
+        } else {
+            let xPos = Tuberia.nextRandom(maxX);
+        }
+        let yOffset = 20 + Tuberia.nextRandom(180);
+        let yPos = 0 - yOffset;
+        let activa = true;
+        return;
+    }
+
+    method void randomResetConOffset(int baseOffset, int rangoExtra) {
+        var int extra;
+        do randomReset();
+        if (rangoExtra < 1) {
+            let extra = 0;
+        } else {
+            let extra = Tuberia.nextRandom(rangoExtra);
+        }
+        let yPos = yPos - baseOffset - extra;
+        let activa = true;
+        return;
+    }
+
+    constructor Tuberia new(int x, int anch, int yInicial) {
+        let xPos = x;
+        let ancho = anch;
+        let yPos = yInicial;
+        let activa = true;
+        return this;
+    }
+
+    method void dispose() {
+        do Memory.deAlloc(this);
+        return;
+    }
+
+    method void dibujar() {
+        var int x1, y1, x2, y2;
+        if (~activa) { return; }
+        if (yPos > 255) { return; }
+        let x1 = xPos;
+        let y1 = yPos;
+        let x2 = xPos + ancho;
+        let y2 = yPos + 20;
+
+        if (x1 < 0) { let x1 = 0; }
+        if (y1 < 0) { let y1 = 0; }
+        if (x2 > 511) { let x2 = 511; }
+        if (y2 > 255) { let y2 = 255; }
+
+        if ((x1 > x2) | (y1 > y2)) { return; }
+        do Screen.setColor(true);
+        do Screen.drawRectangle(x1, y1, x2, y2);
+        return;
+    }
+
+    method void borrar() {
+        var int x1, y1, x2, y2;
+        if (yPos > 255) { return; }
+        let x1 = xPos;
+        let y1 = yPos;
+        let x2 = xPos + ancho + 2;
+        let y2 = yPos + 20 + yVel;
+
+        if (x1 < 0) { let x1 = 0; }
+        if (y1 < 0) { let y1 = 0; }
+        if (x2 > 511) { let x2 = 511; }
+        if (y2 > 255) { let y2 = 255; }
+
+        if ((x1 > x2) | (y1 > y2)) { return; }
+        do Screen.setColor(false);
+        do Screen.drawRectangle(x1, y1, x2, y2);
+        return;
+    }
+
+    method boolean updateAndCheckPassed() {
+        var boolean paso;
+        let paso = false;
+        do borrar();
+        let yPos = yPos + yVel;
+        if (yPos > 255) {
+            let paso = true;
+            do randomReset();
+        }
+        do dibujar();
+        return paso;
+    }
+
+    method void update() {
+        do updateAndCheckPassed();
+        return;
+    }
+
+    method boolean colision(int nx, int ny) {
+        if (~activa) { return false; }
+        if (yPos < 0) { return false; }
+        if ((nx < (xPos + ancho)) & ((nx + 11) > xPos)) {
+            if ((ny < (yPos + 20)) & ((ny + 15) > yPos)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    method int x() { return xPos; }
+    method int y() { return yPos; }
+    method boolean estaActiva() { return activa; }
+
+    method void activar(int x, int anch) {
+        let xPos = x;
+        let ancho = anch;
+        let yPos = 0;
+        let activa = true;
+        return;
+    }
+
+    method void resetPos(int x, int anch, int yInicial) {
+        let xPos = x;
+        let ancho = anch;
+        let yPos = yInicial;
+        let activa = true;
+        return;
+    }
+}

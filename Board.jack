@@ -1,0 +1,99 @@
+class Board {
+    field int puntaje;
+    field int highScore;
+
+    constructor Board new() {
+        let puntaje = 0;
+        let highScore = 0;
+        return this;
+    }
+
+    method void dispose() {
+        do Memory.deAlloc(this);
+        return;
+    }
+
+    method void resetScore() {
+        let puntaje = 0;
+        return;
+    }
+
+    method void addScore(int value) {
+        let puntaje = puntaje + value;
+        return;
+    }
+
+    method int score() {
+        return puntaje;
+    }
+
+    method int record() {
+        return highScore;
+    }
+
+    method void actualizarRecord() {
+        if (puntaje > highScore) {
+            let highScore = puntaje;
+        }
+        return;
+    }
+
+    method void drawHud() {
+        do drawBorder();
+        do Output.moveCursor(0, 0);
+        do Output.printString("Puntaje: ");
+        do Output.printInt(puntaje);
+        do Output.moveCursor(0, 18);
+        do Output.printString("Record: ");
+        do Output.printInt(highScore);
+        return;
+    }
+
+    method void drawBorder() {
+        do Screen.setColor(true);
+        do Screen.drawRectangle(0, 0, 511, 6);
+        do Screen.drawRectangle(0, 249, 511, 255);
+        return;
+    }
+
+    method void drawBackground() {
+        do Screen.clearScreen();
+        do drawBorder();
+        do drawHud();
+        return;
+    }
+
+    method void pantallaInicio() {
+        do drawBackground();
+        do Output.moveCursor(8, 14);
+        do Output.printString("FLAPPY NAVE");
+        do Output.moveCursor(10, 8);
+        do Output.printString("Flechas: jugar y mover nave");
+        do Output.moveCursor(11, 8);
+        do Output.printString("Evita las tuberias");
+        do Output.moveCursor(12, 8);
+        do Output.printString("Q: salir");
+        do Output.moveCursor(14, 8);
+        do Output.printString("Presiona una tecla...");
+        while (Keyboard.keyPressed() = 0) {}
+        while (~(Keyboard.keyPressed() = 0)) {}
+        do drawBackground();
+        return;
+    }
+
+    method void pantallaGameOver() {
+        do actualizarRecord();
+        do Screen.clearScreen();
+        do Output.moveCursor(8, 14);
+        do Output.printString("GAME OVER");
+        do Output.moveCursor(10, 10);
+        do Output.printString("Puntaje: ");
+        do Output.printInt(puntaje);
+        do Output.moveCursor(11, 10);
+        do Output.printString("Record: ");
+        do Output.printInt(highScore);
+        do Output.moveCursor(13, 8);
+        do Output.printString("R: reiniciar  Q: salir");
+        return;
+    }
+}
