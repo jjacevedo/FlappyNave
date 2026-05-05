@@ -12,6 +12,7 @@ class Game {
     field boolean started;
     field int framesJugando;
     field int nextNivelScore;
+    field int hudScoreMostrado;
 
     method void prepararTuberias() {
         // Escalonar obstaculos para una curva inicial justa.
@@ -39,6 +40,7 @@ class Game {
         let started = false;
         let framesJugando = 0;
         let nextNivelScore = 50;
+        let hudScoreMostrado = -1;
         return this;
     }
 
@@ -85,7 +87,7 @@ class Game {
     }
 
     method void ajustarDificultad() {
-        if (board.score() >= nextNivelScore) {
+        if (~(board.score() < nextNivelScore)) {
             if (Tuberia.vel() < 6) {
                 do Tuberia.setVel(Tuberia.vel() + 1);
             }
@@ -125,6 +127,7 @@ class Game {
         let framesJugando = 0;
         let delay = 15;
         let nextNivelScore = 50;
+        let hudScoreMostrado = -1;
         do Tuberia.setVel(2);
         do board.resetScore();
 
@@ -139,10 +142,16 @@ class Game {
                 let framesJugando = framesJugando + 1;
                 do update();
                 do verificarColisiones();
-                do board.drawHud();
+                if (~(board.score() = hudScoreMostrado)) {
+                    do board.drawHud();
+                    let hudScoreMostrado = board.score();
+                }
                 do Sys.wait(delay);
             } else {
-                do board.drawHud();
+                if (~(board.score() = hudScoreMostrado)) {
+                    do board.drawHud();
+                    let hudScoreMostrado = board.score();
+                }
                 do Sys.wait(delay);
             }
         }
