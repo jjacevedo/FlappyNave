@@ -1,76 +1,35 @@
+// Tuberia.jack
+// Representa una tuberia que baja desde arriba
+// Ancho variable, baja a velocidad compartida
+// Se regenera sola cuando sale por la parte inferior
+// Game solo llama update(), colision(), pasada()
+
 class Tuberia {
-    static int yVel;
-    static int seed;
-    field int xPos;
-    field int yPos;
-    field int ancho;
+    static int vel;    // velocidad compartida por todas las tuberias
+    field int xPos;    // posicion horizontal
+    field int yPos;    // posicion vertical
+    field int ancho;   // ancho variable de la tuberia
+    field int alto;    // alto fijo de la tuberia
     field boolean activa;
+    field boolean contada; // para saber si ya sumo punto
 
-    function void init(int vel) {
-        let yVel = vel;
-        let seed = 123;
+    // Inicializar velocidad global
+    function void setVel(int v) {
+        let vel = v;
         return;
     }
 
-    function void setVel(int vel) {
-        if (vel < 1) {
-            let yVel = 1;
-        } else {
-            let yVel = vel;
-        }
-        return;
-    }
-
-    function int vel() {
-        return yVel;
-    }
-
-    function int nextRandom(int limit) {
-        var int value;
-        let seed = (seed * 73) + 41;
-        if (seed < 0) {
-            let seed = 0 - seed;
-        }
-        if (limit < 1) {
-            return 0;
-        }
-        let value = seed - ((seed / limit) * limit);
-        return value;
-    }
-
-    method void randomReset() {
-        var int maxX, yOffset;
-        let ancho = 24 + Tuberia.nextRandom(73);   // 24..96
-        let maxX = 512 - ancho;
-        if (maxX < 1) {
-            let xPos = 0;
-        } else {
-            let xPos = Tuberia.nextRandom(maxX);
-        }
-        let yOffset = 20 + Tuberia.nextRandom(180);
-        let yPos = 0 - yOffset;
-        let activa = true;
-        return;
-    }
-
-    method void randomResetConOffset(int baseOffset, int rangoExtra) {
-        var int extra;
-        do randomReset();
-        if (rangoExtra < 1) {
-            let extra = 0;
-        } else {
-            let extra = Tuberia.nextRandom(rangoExtra);
-        }
-        let yPos = yPos - baseOffset - extra;
-        let activa = true;
-        return;
+    function int getVel() {
+        return vel;
     }
 
     constructor Tuberia new(int x, int anch, int yInicial) {
         let xPos = x;
         let ancho = anch;
         let yPos = yInicial;
+        let alto = 18;
         let activa = true;
+        let contada = false;
         return this;
     }
 
@@ -79,91 +38,103 @@ class Tuberia {
         return;
     }
 
-    method void dibujar() {
-        var int x1, y1, x2, y2;
+    // Dibujar tuberia
+    method void draw() {
         if (~activa) { return; }
-        if (yPos > 255) { return; }
-        let x1 = xPos;
-        let y1 = yPos;
-        let x2 = xPos + ancho;
-        let y2 = yPos + 20;
-
-        if (x1 < 0) { let x1 = 0; }
-        if (y1 < 0) { let y1 = 0; }
-        if (x2 > 511) { let x2 = 511; }
-        if (y2 > 255) { let y2 = 255; }
-
-        if ((x1 > x2) | (y1 > y2)) { return; }
+        if (yPos < 3) { return; }
+        if ((yPos + alto) > 252) { return; }
         do Screen.setColor(true);
-        do Screen.drawRectangle(x1, y1, x2, y2);
+        do Screen.drawRectangle(xPos, yPos, xPos + ancho, yPos + alto);
         return;
     }
 
-    method void borrar() {
-        var int x1, y1, x2, y2;
-        if (yPos > 255) { return; }
-        let x1 = xPos;
-        let y1 = yPos;
-        let x2 = xPos + ancho + 2;
-        let y2 = yPos + 20 + yVel;
-
-        if (x1 < 0) { let x1 = 0; }
-        if (y1 < 0) { let y1 = 0; }
-        if (x2 > 511) { let x2 = 511; }
-        if (y2 > 255) { let y2 = 255; }
-
-        if ((x1 > x2) | (y1 > y2)) { return; }
+    // Borrar tuberia
+    method void erase() {
+        var int yFin;
+        if (yPos < 3) { return; }
+        // fuera del area de juego: nada que borrar (evita y1 > y2)
+        if (yPos > 252) { return; }
         do Screen.setColor(false);
-        do Screen.drawRectangle(x1, y1, x2, y2);
-        return;
-    }
-
-    method boolean updateAndCheckPassed() {
-        var boolean paso;
-        let paso = false;
-        do borrar();
-        let yPos = yPos + yVel;
-        if (yPos > 255) {
-            let paso = true;
-            do randomReset();
+        let yFin = yPos + alto + vel;
+        if (yFin > 252) {
+            let yFin = 252;
         }
-        do dibujar();
-        return paso;
-    }
-
-    method void update() {
-        do updateAndCheckPassed();
+        do Screen.drawRectangle(xPos, yPos, xPos + ancho, yFin);
         return;
     }
 
+    // Actualizar posicion — bajar y regenerar si sale
+    method void update() {
+        if (~activa) { return; }
+
+        do erase();
+        let yPos = yPos + vel;
+
+        // regenerar antes de quedar con coordenadas invalidas
+        if ((yPos > 255) | ((yPos + alto) > 252)) {
+            do regenerar();
+        } else {
+            do draw();
+        }
+        return;
+    }
+
+    // Regenerar tuberia desde arriba con nuevo ancho
+    method void regenerar() {
+        // ancho variable entre 20 y 80 segun posicion actual de x
+        // usamos xPos como "semilla" para variar el ancho
+        let yPos = 0;
+        let contada = false;
+
+        // variar ancho usando modulo simulado
+        if (xPos < 150) {
+            let ancho = 35;
+        }
+        if ((xPos > 149) & (xPos < 300)) {
+            let ancho = 55;
+        }
+        if (xPos > 299) {
+            let ancho = 25;
+        }
+        return;
+    }
+
+    // Verificar colision con la nave
+    // nave ocupa aprox 11px ancho x 15px alto
     method boolean colision(int nx, int ny) {
         if (~activa) { return false; }
-        if (yPos < 0) { return false; }
+        if (yPos < 3) { return false; }
+
         if ((nx < (xPos + ancho)) & ((nx + 11) > xPos)) {
-            if ((ny < (yPos + 20)) & ((ny + 15) > yPos)) {
+            if ((ny < (yPos + alto)) & ((ny + 15) > yPos)) {
                 return true;
             }
         }
         return false;
     }
 
-    method int x() { return xPos; }
-    method int y() { return yPos; }
-    method boolean estaActiva() { return activa; }
-
-    method void activar(int x, int anch) {
-        let xPos = x;
-        let ancho = anch;
-        let yPos = 0;
-        let activa = true;
-        return;
+    // Verificar si la tuberia ya paso la nave (para sumar punto)
+    method boolean pasada(int ny) {
+        if (contada) { return false; }
+        if (yPos > (ny + 15)) {
+            let contada = true;
+            return true;
+        }
+        return false;
     }
 
-    method void resetPos(int x, int anch, int yInicial) {
+    // Getters
+    method int getX() { return xPos; }
+    method int getY() { return yPos; }
+    method boolean estaActiva() { return activa; }
+
+    // Reset completo
+    method void reset(int x, int anch, int yInicial) {
         let xPos = x;
         let ancho = anch;
         let yPos = yInicial;
         let activa = true;
+        let contada = false;
         return;
     }
 }
